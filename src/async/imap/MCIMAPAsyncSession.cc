@@ -36,6 +36,7 @@ IMAPAsyncSession::IMAPAsyncSession()
     mDefaultNamespace = NULL;
     mTimeout = 30.;
     mConnectionLogger = NULL;
+    mOperationQueueMonitor = NULL;
 }
 
 IMAPAsyncSession::~IMAPAsyncSession()
@@ -461,6 +462,29 @@ void IMAPAsyncSession::setConnectionLogger(ConnectionLogger * logger)
 ConnectionLogger * IMAPAsyncSession::connectionLogger()
 {
     return mConnectionLogger;
+}
+
+void IMAPAsyncSession::setOperationQueueMonitor(OperationQueueMonitor *operationQueueMonitor)
+{
+    mOperationQueueMonitor = operationQueueMonitor;
+}
+
+void IMAPAsyncSession::operationRunningStateChanged()
+{
+    bool isRunning = false;
+    for(unsigned int i = 0 ; i < mSessions->count() ; i ++) {
+        IMAPAsyncConnection * currentSession = (IMAPAsyncConnection *) mSessions->objectAtIndex(i);
+        if (currentSession->isQueueRunning){
+            isRunning = true;
+            break;
+        }
+    }
+    if (mOperationQueueMonitor){
+        if (isOperationRunning!=isRunning){
+            mOperationQueueMonitor->operationRunningStateChanged(isRunning);
+        }
+    }
+    isOperationRunning = isRunning;
 }
 
 IMAPMessageRenderingOperation * IMAPAsyncSession::htmlRenderingOperation(IMAPMessage * message,

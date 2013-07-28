@@ -104,6 +104,20 @@
 */
 @property (nonatomic, copy) MCOConnectionLogger connectionLogger;
 
+/**
+ Indicates if the session has running operations
+ */
+@property (nonatomic, assign, readonly) bool isOperationRunning;
+/**
+ Sets handler for operations running state changes
+ 
+ [session setOperationRunningStateChangedHandler:^() {
+ ...
+ }];
+ 
+ */
+@property (nonatomic, copy) MCOOperationRunningStateChangeHandler operationRunningStateChangeHandler;
+
 /** @name Folder Operations */
 
 /**

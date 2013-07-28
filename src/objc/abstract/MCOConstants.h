@@ -356,4 +356,14 @@ typedef enum {
  */
 typedef void (^MCOConnectionLogger)(void * connectionID, MCOConnectionLogType type, NSData * data);
 
+/**
+ Callback when there is a change in number of operations
+ */
+typedef void (^MCONumberOfOperationsChangeHandler)();
+
+/**
+ Callback when operation running state changes
+ */
+typedef void (^MCOOperationRunningStateChangeHandler)(bool isOperationRunning);
+
 #endif

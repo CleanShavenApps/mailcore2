@@ -154,6 +154,8 @@ namespace mailcore {
         virtual String * lastFolder();
         
         virtual void tryAutomaticDisconnect();
+        
+        bool isQueueRunning;
         virtual void queueStartRunning();
         virtual void queueStoppedRunning();
         

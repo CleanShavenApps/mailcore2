@@ -50,6 +50,11 @@ namespace mailcore {
         
     };
     
+    class OperationQueueMonitor {
+    public:
+        virtual void operationRunningStateChanged(bool isOperationRunning) {}
+    };
+    
 }
 
 #endif

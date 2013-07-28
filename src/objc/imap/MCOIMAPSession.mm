@@ -28,6 +28,7 @@ using namespace mailcore;
 @interface MCOIMAPSession ()
 
 - (void) _logWithSender:(void *)sender connectionType:(MCOConnectionLogType)logType data:(NSData *)data;
+- (void) _operationRunningStateChanged:(bool)isOperationRunning;
 
 @end
 
@@ -47,10 +48,29 @@ private:
     MCOIMAPSession * mSession;
 };
 
+class MCOIMAPOperationQueueMonitorBridge : public Object, public OperationQueueMonitor {
+public:
+    MCOIMAPOperationQueueMonitorBridge(MCOIMAPSession * session)
+    {
+        mSession = session;
+    }
+    
+    virtual void operationRunningStateChanged(bool isOperationRunning)
+    {
+        [mSession _operationRunningStateChanged:isOperationRunning];
+    }
+    
+private:
+    MCOIMAPSession * mSession;
+};
+
 @implementation MCOIMAPSession {
     IMAPAsyncSession * _session;
     MCOConnectionLogger _connectionLogger;
+    MCONumberOfOperationsChangeHandler _numberOfOperationsChangeHandler;
+    MCOIMAPOperationQueueMonitorBridge * _operationQueueMonitorBridge;
     MCOIMAPConnectionLoggerBridge * _loggerBridge;
+    MCOOperationRunningStateChangeHandler _operationRunningStateChangeHandler;
 }
 
 #define nativeType mailcore::IMAPAsyncSession
@@ -65,6 +85,7 @@ private:
     
     _session = new IMAPAsyncSession();
     _loggerBridge = new MCOIMAPConnectionLoggerBridge(self);
+    _operationQueueMonitorBridge = new MCOIMAPOperationQueueMonitorBridge(self);
     
     return self;
 }
@@ -72,6 +93,9 @@ private:
 - (void)dealloc {
     MC_SAFE_RELEASE(_loggerBridge);
     [_connectionLogger release];
+    MC_SAFE_RELEASE(_operationQueueMonitorBridge);
+    [_numberOfOperationsChangeHandler release];
+    [_operationRunningStateChangeHandler release];
     _session->release();
     [super dealloc];
 }
@@ -116,6 +140,32 @@ MCO_OBJC_SYNTHESIZE_SCALAR(unsigned int, unsigned int, setMaximumConnections, ma
 - (MCOConnectionLogger) connectionLogger
 {
     return _connectionLogger;
+}
+
+- (void) setNumberOfOperationsChangeHandler:(MCONumberOfOperationsChangeHandler)numberOfOperationsChangeHandler
+{
+    [_numberOfOperationsChangeHandler release];
+    _numberOfOperationsChangeHandler = [numberOfOperationsChangeHandler copy];
+    
+    if (_numberOfOperationsChangeHandler != nil){
+        _session->setOperationQueueMonitor(_operationQueueMonitorBridge);
+    }
+    else {
+        _session->setOperationQueueMonitor(NULL);
+    }
+}
+
+- (void) setOperationRunningStateChangeHandler:(MCOOperationRunningStateChangeHandler)operationRunningStateChangeHandler
+{
+    [_operationRunningStateChangeHandler release];
+    _operationRunningStateChangeHandler = [operationRunningStateChangeHandler copy];
+    
+    if (_operationRunningStateChangeHandler != nil){
+        _session->setOperationQueueMonitor(_operationQueueMonitorBridge);
+    }
+    else {
+        _session->setOperationQueueMonitor(NULL);
+    }
 }
 
 #pragma mark - Operations
@@ -365,6 +415,13 @@ MCO_OBJC_SYNTHESIZE_SCALAR(unsigned int, unsigned int, setMaximumConnections, ma
 - (void) _logWithSender:(void *)sender connectionType:(MCOConnectionLogType)logType data:(NSData *)data
 {
     _connectionLogger(sender, logType, data);
+}
+
+- (void) _operationRunningStateChanged:(bool)isOperationRunning
+{
+    _isOperationRunning = isOperationRunning;
+    if (_operationRunningStateChangeHandler)
+        _operationRunningStateChangeHandler(isOperationRunning);
 }
 
 - (MCOIMAPMessageRenderingOperation *) htmlRenderingOperationWithMessage:(MCOIMAPMessage *)message

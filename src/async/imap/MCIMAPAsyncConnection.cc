@@ -49,12 +49,19 @@ namespace mailcore {
         }
         
         virtual void queueStartRunning(OperationQueue * queue) {
+            mConnection->isQueueRunning = true;
             mConnection->queueStartRunning();
+            IMAPAsyncSession *owner = mConnection->owner();
+            owner->operationRunningStateChanged();
         }
         
         virtual void queueStoppedRunning(OperationQueue * queue) {
+            mConnection->isQueueRunning = false;
             mConnection->tryAutomaticDisconnect();
             mConnection->queueStoppedRunning();
+            
+            IMAPAsyncSession *owner = mConnection->owner();
+            owner->operationRunningStateChanged();
         }
         
     private:
